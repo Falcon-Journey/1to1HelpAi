@@ -1,32 +1,53 @@
-import { NextResponse } from 'next/server';
-import { openai } from '@ai-sdk/openai';
+// app/api/transcribe/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { IncomingForm } from 'formidable'
+import fs from 'fs'
+import path from 'path'
+import { OpenAI } from 'openai'
 
-export const maxDuration = 60;
+// Disable Next.js body parser
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
 
-export async function POST(req: Request) {
-  const formData = await req.formData();
-  const file = formData.get('audio') as File | null;
-  if (!file) {
-    return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
-  }
+export async function POST(req: NextRequest) {
   try {
-    const data = new FormData();
-    data.append('model', 'whisper-1');
-    data.append('file', file);
-    const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: data,
-    });
-    const result = await resp.json();
-    if (resp.ok) {
-      return NextResponse.json({ text: result.text });
-    }
-    return NextResponse.json({ error: result.error?.message || 'Transcription failed' }, { status: 500 });
-  } catch (error) {
-    console.error('Transcription error', error);
-    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
+    const formData = await parseFormData(req)
+
+    const audioFilePath = formData.filepath
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+
+    const fileStream = fs.createReadStream(audioFilePath)
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: fileStream,
+      model: 'whisper-1',
+    })
+
+    return NextResponse.json({ text: transcription.text })
+  } catch (err) {
+    console.error('Error:', err)
+    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 })
   }
+}
+
+// Helper function to parse multipart form data
+function parseFormData(req: NextRequest): Promise<{ filepath: string }> {
+  return new Promise((resolve, reject) => {
+    const form = new IncomingForm({ uploadDir: '/tmp', keepExtensions: true })
+
+    // @ts-ignore: req is not the expected Node type, workaround for Next.js
+    form.parse(req, (err, fields, files) => {
+      if (err) return reject(err)
+
+      const file = files.audio
+      if (!file || Array.isArray(file) || !file) {
+        return reject(new Error('Audio file missing or invalid'))
+      }
+
+      resolve({ filepath: file })
+    })
+  })
 }

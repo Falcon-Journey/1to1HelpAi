@@ -35,7 +35,7 @@ import Image from "next/image"
 import { CounselorCards } from "@/components/counselor-cards"
 
 // Wellness-focused system prompt
-const WELLNESS_SYSTEM_PROMPT = `You are Bloom, a compassionate emotional wellness companion created by The Bloom community. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
+const WELLNESS_SYSTEM_PROMPT = `You are 1to1Help, a compassionate emotional wellness companion created by The 1to1Help community. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
 
 IMPORTANT:
 - Keep your answers short and concise try to consume as less token as possible
@@ -87,11 +87,11 @@ export default function WellnessChat() {
   // Wellness-focused models (prioritizing Google Gemini)
   const models = [
     // Google Gemini (Primary)
-    { id: "gemini-1.5-flash", name: "Bloom Ai", provider: "google" },
+    // { id: "gemini-1.5-flash", name: "1to1Help Ai", provider: "google" },
     // { id: "gemini-1.5-pro", name: "Gemini Pro", provider: "google" },
     // { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "google" },
     // // OpenAI (Backup)
-    // { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "openai" },
+    { id: "gpt-4o-mini", name: "1to1Help Ai", provider: "openai" },
     // { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
     // // Anthropic (Alternative)
     // { id: "claude-3-haiku-20240307", name: "Claude 3 Haiku", provider: "anthropic" },
@@ -133,8 +133,6 @@ export default function WellnessChat() {
     "I'm feeling overwhelmed with work stress",
     "Help me with breathing exercises for anxiety",
     "I need to schedule a session with a counselor",
-    "How can I practice self-compassion?",
-    "I need help managing difficult emotions",
     "Can you connect me with a therapist?",
   ]
 
@@ -263,7 +261,7 @@ export default function WellnessChat() {
                   <HeartIcon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Bloom Wellness</h1>
+                  <h1 className="text-2xl font-bold">1to1Help Ai</h1>
                   <p className="text-white/80 text-sm">Your emotional wellness companion</p>
                 </div>
               </div>
@@ -307,7 +305,7 @@ export default function WellnessChat() {
                         </div>
                       </div>
                     ) : (
-                      messages.slice(1).map((message) => {
+                      messages.slice(0).map((message) => {
                         // Extract sources from 'source' parts (streamed via sendSources)
                         const sourceParts = message.parts.filter(
                           (part) => part.type === "source-url" || part.type === "source-document",
@@ -374,7 +372,7 @@ export default function WellnessChat() {
                               </AIMessageContent>
                             </div>
                             <AIMessageAvatar
-                              name={message.role === "user" ? "You" : "Bloom"}
+                              name={message.role === "user" ? "You" : "1to1Help Ai"}
                               src={
                                 message.role === "user"
                                   ? "https://github.com/haydenbleasel.png"
@@ -389,6 +387,7 @@ export default function WellnessChat() {
                   <AIConversationScrollButton />
                 </AIConversation>
                 <div className="grid shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
+                <div className="grid justify-center shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
                   <AISuggestions className="px-4">
                     {suggestions.map((s) => (
                       <AISuggestion 
@@ -399,6 +398,7 @@ export default function WellnessChat() {
                       />
                     ))}
                   </AISuggestions>
+                  </div>
                   <div className="w-full px-4 pb-4">
                     <AIInput onSubmit={handleSubmit} className="border-[#8fbc8f]/30 bg-white/90 backdrop-blur-sm">
                       <AIInputTextarea

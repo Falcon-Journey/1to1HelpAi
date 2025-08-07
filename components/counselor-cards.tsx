@@ -11,53 +11,54 @@ import { BookingModal } from "./booking-modal"
 const counselors = [
   {
     id: 1,
-    name: "Dr. Sarah Chen",
-    title: "Licensed Clinical Psychologist",
+    name: "Dr. Aditi Sharma",
+    title: "Clinical Psychologist (Licensed)",
     specialties: ["Anxiety", "Depression", "Trauma"],
     rating: 4.9,
     experience: "12 years",
-    location: "San Francisco, CA",
-    education: "PhD Psychology, Stanford University",
-    bio: "Dr. Chen specializes in cognitive-behavioral therapy and has extensive experience helping clients overcome anxiety and depression. She uses evidence-based approaches tailored to each individual's needs.",
-    availability: "Mon-Fri, 9AM-6PM",
-    rate: "$150/session",
-    phone: "+1 (555) 123-4567",
-    email: "sarah.chen@bloomwellness.com",
+    location: "Delhi, India",
+    education: "PhD in Psychology, Delhi University",
+    bio: "Dr. Aditi specializes in cognitive-behavioral therapy and has extensive experience helping clients overcome anxiety and depression. She uses evidence-based, personalized approaches suited to each individual's needs.",
+    availability: "Mon-Fri, 10AM-6PM",
+    rate: "₹2500/session",
+    phone: "+91 98101 23456",
+    email: "aditi.sharma@1to1HelpAi.in",
     image: "/professional-woman-therapist.png"
   },
   {
     id: 2,
-    name: "Dr. Michael Rodriguez",
-    title: "Licensed Marriage & Family Therapist",
+    name: "Dr. Rajiv Menon",
+    title: "Marriage & Family Therapist",
     specialties: ["Couples Therapy", "Family Counseling", "Communication"],
     rating: 4.8,
-    experience: "8 years",
-    location: "Austin, TX",
-    education: "MA Family Therapy, University of Texas",
-    bio: "Dr. Rodriguez helps couples and families build stronger relationships through improved communication and conflict resolution. He creates a safe space for healing and growth.",
-    availability: "Tue-Sat, 10AM-7PM",
-    rate: "$120/session",
-    phone: "+1 (555) 234-5678",
-    email: "michael.rodriguez@bloomwellness.com",
+    experience: "9 years",
+    location: "Bangalore, India",
+    education: "MSc in Counseling Psychology, Christ University",
+    bio: "Dr. Rajiv helps couples and families build healthier relationships through better communication and conflict resolution. He offers a non-judgmental space for emotional growth and connection.",
+    availability: "Tue-Sat, 11AM-7PM",
+    rate: "₹2000/session",
+    phone: "+91 98450 12345",
+    email: "rajiv.menon@1to1HelpAi.in",
     image: "/professional-man-therapist.png"
   },
   {
     id: 3,
-    name: "Dr. Emily Johnson",
-    title: "Licensed Clinical Social Worker",
+    name: "Dr. Meera Iyer",
+    title: "Clinical Social Worker (Licensed)",
     specialties: ["Mindfulness", "Stress Management", "Life Transitions"],
     rating: 4.9,
     experience: "10 years",
-    location: "Seattle, WA",
-    education: "MSW Clinical Practice, University of Washington",
-    bio: "Dr. Johnson integrates mindfulness-based approaches with traditional therapy to help clients manage stress and navigate life changes. She believes in the power of self-compassion and resilience.",
-    availability: "Mon-Thu, 8AM-5PM",
-    rate: "$130/session",
-    phone: "+1 (555) 345-6789",
-    email: "emily.johnson@bloomwellness.com",
+    location: "Mumbai, India",
+    education: "MSW in Clinical Practice, Tata Institute of Social Sciences (TISS)",
+    bio: "Dr. Meera blends mindfulness-based therapy with traditional methods to help clients manage stress, anxiety, and navigate personal transitions. She believes in building inner resilience through compassion.",
+    availability: "Mon-Thu, 9AM-5PM",
+    rate: "₹2200/session",
+    phone: "+91 98765 43210",
+    email: "meera.iyer@1to1HelpAi.in",
     image: "/professional-woman-counselor.png"
   }
 ]
+
 
 interface CounselorCardsProps {
   isSignedUp: boolean
@@ -206,14 +207,14 @@ export function CounselorCards({ isSignedUp, onSignUp, onClose }: CounselorCards
                       </div>
                       <h5 className="font-medium text-[#2d5a5a]">Full Profile Available</h5>
                       <p className="text-sm text-muted-foreground">
-                        Sign up to view complete counselor information, contact details, and book sessions.
+                        Log In to view complete counselor information, contact details, and book sessions.
                       </p>
                       <Button 
                         onClick={onSignUp}
                         className="w-full bg-[#2d5a5a] hover:bg-[#1e3a3a] text-white mt-3"
                         size="sm"
                       >
-                        Sign Up to View Details
+                        Log In to View Details
                       </Button>
                     </div>
                   </div>
@@ -226,7 +227,7 @@ export function CounselorCards({ isSignedUp, onSignUp, onClose }: CounselorCards
         {/* Footer */}
         <div className="p-4 border-t border-border/50 bg-[#8fbc8f]/5">
           <p className="text-xs text-muted-foreground text-center">
-            All counselors are licensed professionals verified by Bloom Wellness
+            All counselors are licensed professionals verified by 1to1Help.
           </p>
         </div>
       </div>
