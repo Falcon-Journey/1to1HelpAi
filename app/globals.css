@@ -1,26 +1,277 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: Geist, sans-serif;
+  --font-mono: Geist Mono, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-serif: Georgia, serif;
+  --radius: 0.5rem;
+  --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+  --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+  --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+  --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+  --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --tracking-normal: var(--tracking-normal);
+  --shadow-2xl: var(--shadow-2xl);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-md: var(--shadow-md);
+  --shadow: var(--shadow);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-2xs: var(--shadow-2xs);
+  --spacing: var(--spacing);
+  --letter-spacing: var(--letter-spacing);
+  --shadow-offset-y: var(--shadow-offset-y);
+  --shadow-offset-x: var(--shadow-offset-x);
+  --shadow-spread: var(--shadow-spread);
+  --shadow-blur: var(--shadow-blur);
+  --shadow-opacity: var(--shadow-opacity);
+  --color-shadow-color: var(--shadow-color);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  /* Bloom Wellness Theme Colors */
+  --bloom-teal: #2d5a5a;
+  --bloom-teal-light: #3a6b6b;
+  --bloom-teal-dark: #1e3a3a;
+  --bloom-sage: #8fbc8f;
+  --bloom-sage-light: #a8d0a8;
+  --bloom-sage-dark: #7aa87a;
+  --bloom-cream: #faf7f2;
+  --bloom-cream-dark: #f0ede8;
+  --bloom-green-bright: #7dd87d;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+  --background: #faf7f2;
+  --foreground: #2d5a5a;
+  --card: #ffffff;
+  --card-foreground: #2d5a5a;
+  --popover: #ffffff;
+  --popover-foreground: #2d5a5a;
+  --primary: #2d5a5a;
+  --primary-foreground: #ffffff;
+  --secondary: #8fbc8f;
+  --secondary-foreground: #2d5a5a;
+  --muted: #f0ede8;
+  --muted-foreground: #6b7280;
+  --accent: #8fbc8f;
+  --accent-foreground: #2d5a5a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #f9fafb;
+  --ring: #2d5a5a;
+  --chart-1: #8fbc8f;
+  --chart-2: #2d5a5a;
+  --chart-3: #7dd87d;
+  --chart-4: #a8d0a8;
+  --chart-5: #7aa87a;
+  --sidebar: #faf7f2;
+  --sidebar-foreground: #2d5a5a;
+  --sidebar-primary: #2d5a5a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #8fbc8f;
+  --sidebar-accent-foreground: #2d5a5a;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #2d5a5a;
+  --font-sans: Geist, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Geist Mono, monospace;
+  --shadow-color: hsl(0 0% 0%);
+  --shadow-opacity: 0.18;
+  --shadow-blur: 2px;
+  --shadow-spread: 0px;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 1px;
+  --letter-spacing: 0em;
+  --spacing: 0.25rem;
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+  --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+  --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+  --shadow-md: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+  --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+  --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+  --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
+  --tracking-normal: 0em;
+}
+
+.dark {
+  --background: #1e3a3a;
+  --foreground: #faf7f2;
+  --card: #2d5a5a;
+  --card-foreground: #faf7f2;
+  --popover: #2d5a5a;
+  --popover-foreground: #faf7f2;
+  --primary: #8fbc8f;
+  --primary-foreground: #2d5a5a;
+  --secondary: #3a6b6b;
+  --secondary-foreground: #faf7f2;
+  --muted: #3a6b6b;
+  --muted-foreground: #a8d0a8;
+  --accent: #8fbc8f;
+  --accent-foreground: #2d5a5a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #3a6b6b;
+  --input: #3a6b6b;
+  --ring: #8fbc8f;
+  --chart-1: #8fbc8f;
+  --chart-2: #7dd87d;
+  --chart-3: #a8d0a8;
+  --chart-4: #7aa87a;
+  --chart-5: #2d5a5a;
+  --sidebar: #2d5a5a;
+  --sidebar-foreground: #faf7f2;
+  --sidebar-primary: #8fbc8f;
+  --sidebar-primary-foreground: #2d5a5a;
+  --sidebar-accent: #3a6b6b;
+  --sidebar-accent-foreground: #faf7f2;
+  --sidebar-border: #3a6b6b;
+  --sidebar-ring: #8fbc8f;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: var(--tracking-normal);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Bloom Wellness Custom Styles */
+.wellness-gradient {
+  background: linear-gradient(135deg, var(--bloom-teal) 0%, var(--bloom-teal-light) 100%);
+}
+
+.bloom-shadow {
+  box-shadow: 0 10px 25px -5px rgba(45, 90, 90, 0.1), 0 10px 10px -5px rgba(45, 90, 90, 0.04);
+}
+
+.wellness-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 247, 242, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(143, 188, 143, 0.2);
+}
+
+.wellness-button {
+  background: linear-gradient(135deg, var(--bloom-teal) 0%, var(--bloom-teal-light) 100%);
+  transition: all 0.3s ease;
+}
+
+.wellness-button:hover {
+  background: linear-gradient(135deg, var(--bloom-teal-dark) 0%, var(--bloom-teal) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 90, 90, 0.3);
+}
+
+.wellness-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(143, 188, 143, 0.3);
+  transition: all 0.3s ease;
+}
+
+.wellness-input:focus {
+  border-color: var(--bloom-teal);
+  box-shadow: 0 0 0 3px rgba(45, 90, 90, 0.1);
+}
+
+.wellness-message-user {
+  background: linear-gradient(135deg, var(--bloom-teal) 0%, var(--bloom-teal-light) 100%);
+  color: white;
+}
+
+.wellness-message-assistant {
+  background: rgba(143, 188, 143, 0.1);
+  border: 1px solid rgba(143, 188, 143, 0.2);
+  color: var(--bloom-teal);
+}
+
+.wellness-suggestion {
+  background: rgba(143, 188, 143, 0.1);
+  border: 1px solid rgba(143, 188, 143, 0.3);
+  color: var(--bloom-teal);
+  transition: all 0.3s ease;
+}
+
+.wellness-suggestion:hover {
+  background: rgba(143, 188, 143, 0.2);
+  border-color: var(--bloom-teal);
+  transform: translateY(-1px);
+}
+
+/* Smooth animations for wellness theme */
+.wellness-fade-in {
+  animation: wellnessFadeIn 0.6s ease-out;
+}
+
+@keyframes wellnessFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom scrollbar for wellness theme */
+.wellness-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wellness-scrollbar::-webkit-scrollbar-track {
+  background: rgba(143, 188, 143, 0.1);
+  border-radius: 3px;
+}
+
+.wellness-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--bloom-sage);
+  border-radius: 3px;
+}
+
+.wellness-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--bloom-teal);
 }
