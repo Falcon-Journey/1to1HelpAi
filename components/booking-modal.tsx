@@ -320,10 +320,10 @@ export function BookingModal({ counselor, isOpen, onClose, onBookingComplete }: 
                         <PhoneIcon className="w-3 h-3" />
                         <span className="truncate">{counselor.phone}</span>
                       </span>
-                      <span className="flex items-center gap-1">
+                      {/* <span className="flex items-center gap-1">
                         <MailIcon className="w-3 h-3" />
                         <span className="truncate">{counselor.email}</span>
-                      </span>
+                      </span> */}
                     </div>
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export function BookingModal({ counselor, isOpen, onClose, onBookingComplete }: 
                     >
                       Individual ({counselor.rate})
                     </Button>
-                    <Button
+                    {/* <Button
                       variant={bookingDetails.sessionType === 'couples' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setBookingDetails(prev => ({ ...prev, sessionType: 'couples' }))}
@@ -374,7 +374,7 @@ export function BookingModal({ counselor, isOpen, onClose, onBookingComplete }: 
                       )}
                     >
                       Couples ($180)
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
 
