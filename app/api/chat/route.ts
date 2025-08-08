@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         ? anthropic(modelId)
         : provider === 'google'
         ? google(modelId)
-        : groq(modelId),
+        : openai.responses('gpt-4o-mini'),
     messages: messagesWithSystem,
     // Note: Web search is only available with OpenAI models
     ...(useWebSearch && provider === 'openai' && {
