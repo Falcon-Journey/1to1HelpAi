@@ -20,7 +20,7 @@ const counselors = [
     education: "PhD in Psychology, Delhi University",
     bio: "Dr. Aditi specializes in cognitive-behavioral therapy and has extensive experience helping clients overcome anxiety and depression. She uses evidence-based, personalized approaches suited to each individual's needs.",
     availability: "Mon-Fri, 10AM-6PM",
-    rate: "₹2500/session",
+    rate: "Included in your plan",
     phone: "+91 98101 23456",
     email: "aditi.sharma@1to1HelpAi.in",
     image: "/professional-woman-therapist.png"
@@ -36,7 +36,7 @@ const counselors = [
     education: "MSc in Counseling Psychology, Christ University",
     bio: "Dr. Rajiv helps couples and families build healthier relationships through better communication and conflict resolution. He offers a non-judgmental space for emotional growth and connection.",
     availability: "Tue-Sat, 11AM-7PM",
-    rate: "₹2000/session",
+    rate: "Included in your plan",
     phone: "+91 98450 12345",
     email: "rajiv.menon@1to1HelpAi.in",
     image: "/professional-man-therapist.png"
@@ -52,7 +52,7 @@ const counselors = [
     education: "MSW in Clinical Practice, Tata Institute of Social Sciences (TISS)",
     bio: "Dr. Meera blends mindfulness-based therapy with traditional methods to help clients manage stress, anxiety, and navigate personal transitions. She believes in building inner resilience through compassion.",
     availability: "Mon-Thu, 9AM-5PM",
-    rate: "₹2200/session",
+    rate: "Included in your plan",
     phone: "+91 98765 43210",
     email: "meera.iyer@1to1HelpAi.in",
     image: "/professional-woman-counselor.png"

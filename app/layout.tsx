@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: '1to1 Help - Your Emotional Wellness Companion',
   description: 'A compassionate AI companion for emotional wellness, mindfulness, and mental health support.',
-  generator: 'Madhur Narang',
+  generator: '1to1Help Ai',
+  icons: {
+    icon: "/favicon.png",
+  },
 }
 
 export default function RootLayout({

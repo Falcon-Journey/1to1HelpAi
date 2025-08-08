@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { DefaultChatTransport, UIMessage } from "ai"
 import { useState, useRef } from "react"
 import {
   AIConversation,
@@ -32,13 +32,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { HeartIcon, MicIcon, PlusIcon, ShieldCheckIcon, UserIcon, CalendarIcon, StarIcon, ClockIcon, MapPinIcon, GraduationCapIcon } from 'lucide-react'
 import Image from "next/image"
+import logo from "@/public/logo.png"
+import favicon from "@/public/favicon.png"
+
 import { CounselorCards } from "@/components/counselor-cards"
 
 // Wellness-focused system prompt
 const WELLNESS_SYSTEM_PROMPT = `You are 1to1Help, a compassionate emotional wellness companion created by The 1to1Help community. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
 
 IMPORTANT:
-- Keep your answers short and concise try to consume as less token as possible
+- Keep your answers short and concise — try to consume as few tokens as possible.
 
 🧠 You Specialize In:
 - Emotional support
@@ -71,12 +74,17 @@ Respond with:
 Respond with:
 "I’d be happy to connect you with our qualified counselors. Let me show you who’s available to support you."
 
+🌱 Additional Behaviour Rules:
+- When a patient initiates a conversation, **do not solve the problem immediately** — first ask open, gentle questions to understand what they are feeling and experiencing.
+- When offering a suggestion or solution, **always end with a gentle follow-up prompt** such as: “Does that seem helpful?” or “Would you like to explore that together?”
+
 🌱 Always be gentle, brief, and non-judgmental.
 🌱 Stay within general wellness — not therapy or clinical care.
 🌱 Keep answers helpful, caring, and to the point.
 
 You are a guide for wellbeing — not a replacement for professional care.
 `;
+
 
 
 export default function WellnessChat() {
@@ -92,6 +100,7 @@ export default function WellnessChat() {
     // { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "google" },
     // // OpenAI (Backup)
     { id: "gpt-4o-mini", name: "1to1Help Ai", provider: "openai" },
+    { id: "coach", name: "Wellness Coach", provider: "coach" },
     // { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
     // // Anthropic (Alternative)
     // { id: "claude-3-haiku-20240307", name: "Claude 3 Haiku", provider: "anthropic" },
@@ -103,7 +112,7 @@ export default function WellnessChat() {
   const [transcribing, setTranscribing] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -136,9 +145,33 @@ export default function WellnessChat() {
     "Can you connect me with a therapist?",
   ]
 
+  const coachSuggestions = [
+    "I want a personalized fitness plan",
+    "Help me start a healthy eating routine",
+    "Guide me on improving my sleep schedule",
+    "I need motivation for regular exercise",
+  ]
+
   const currentProvider = models.find((m) => m.id === model)?.provider || "openai"
 
   const handleSuggestionClick = (suggestion: string) => {
+    if (model === "coach") {
+      const newMessage: UIMessage = {
+        id: Date.now().toString(),
+        role: "user",
+        parts: [{ type: "text", text: suggestion }],
+      };
+
+      const assistantMessage: UIMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        parts: [{ type: "text", text: "Our health coach will get back to you soon." }],
+      };
+
+      setMessages((prevMessages) => [...prevMessages, newMessage, assistantMessage]);
+      setInput("");
+  } else {
+
     const provider = models.find((m) => m.id === model)?.provider || "openai"
     const effectiveWebSearch = provider === "openai" ? useWebSearch : false
     sendMessage({ 
@@ -150,6 +183,7 @@ export default function WellnessChat() {
         systemPrompt: WELLNESS_SYSTEM_PROMPT
       } 
     })
+    }
   }
 
   // Handle microphone recording
@@ -196,6 +230,22 @@ export default function WellnessChat() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (input.trim()) {
+      if (model === "coach") {
+        const newMessage: UIMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          parts: [{ type: "text", text: input }],
+        };
+
+        const assistantMessage: UIMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          parts: [{ type: "text", text: "Our health coach will get back to you soon." }],
+        };
+
+        setMessages((prevMessages) => [...prevMessages, newMessage, assistantMessage]);
+        setInput("");
+    } else {
       const provider = models.find((m) => m.id === model)?.provider || "openai"
       const effectiveWebSearch = provider === "openai" ? useWebSearch : false
       sendMessage({
@@ -207,6 +257,7 @@ export default function WellnessChat() {
           systemPrompt: WELLNESS_SYSTEM_PROMPT
         },
       })
+    }
       setInput("")
     }
   }
@@ -257,14 +308,21 @@ export default function WellnessChat() {
           <CardHeader className="wellness-gradient text-white p-6 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <HeartIcon className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">1to1Help Ai</h1>
-                  <p className="text-white/80 text-sm">Your emotional wellness companion</p>
-                </div>
+              <div
+                className="relative w-70 h-20 cursor-pointer"
+                onClick={() => window.location.reload()}
+              >                <Image
+                  src={logo}
+                  alt="1to1Help Logo"
+                  fill
+                  className="object-contain"
+                />
               </div>
+              {/* <div>
+                <h1 className="text-2xl font-bold">1to1Help Ai</h1>
+                <p className="text-white/80 text-sm">Your emotional wellness companion</p>
+              </div> */}
+            </div>
               <div className="flex items-center gap-2">
                 {isSignedUp && (
                   <Badge variant="secondary" className="bg-green-500/20 text-white border-green-400/30">
@@ -287,8 +345,12 @@ export default function WellnessChat() {
                   <AIConversationContent>
                     {messages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-center space-y-6 p-8">
-                        <div className="w-20 h-20 wellness-gradient rounded-full flex items-center justify-center">
-                          <HeartIcon className="w-10 h-10 text-white" />
+                        <div className="w-20 h-20   flex items-center justify-center">
+                        <Image
+                          src={favicon}
+                          alt="1to1Help Logo"
+                          className="object-contain"
+                        />
                         </div>
                         <div className="space-y-2">
                           <h2 className="text-2xl font-semibold text-[#1e3a3a]">Welcome to Your Safe Space</h2>
@@ -375,8 +437,8 @@ export default function WellnessChat() {
                               name={message.role === "user" ? "You" : "1to1Help Ai"}
                               src={
                                 message.role === "user"
-                                  ? "https://github.com/haydenbleasel.png"
-                                  : "/placeholder.svg?height=32&width=32&query=wellness+heart+icon"
+                                  ? "https://api.dicebear.com/9.x/glass/svg"
+                                  : "/favicon.png"
                               }
                             />
                           </AIMessage>
@@ -389,7 +451,7 @@ export default function WellnessChat() {
                 <div className="grid shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
                 <div className="grid justify-center shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
                   <AISuggestions className="px-4">
-                    {suggestions.map((s) => (
+                    {(model === "coach" ? coachSuggestions : suggestions).map((s) => (
                       <AISuggestion 
                         key={s} 
                         suggestion={s} 
@@ -435,9 +497,10 @@ export default function WellnessChat() {
                                     <div className="w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 via-yellow-500 to-green-500 rounded-full" />
                                   )}
                                   {m.provider === "openai" && (
+                                    
                                     <Image
-                                      src="https://github.com/openai.png"
-                                      alt="OpenAI"
+                                      src={favicon}
+                                      alt="1to1Help Logo"
                                       width={16}
                                       height={16}
                                       className="rounded"
