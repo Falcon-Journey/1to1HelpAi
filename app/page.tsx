@@ -731,10 +731,7 @@ return (
                   onCheckedChange={setIsVoiceMode}
                   className="data-[state=checked]:bg-[#8fbc8f] data-[state=unchecked]:bg-white/20"
                 />
-                <Image
-                  src={favicon || "/placeholder.svg"}
-                  alt="1to1Help Logo"
-                  fill className={`w-4 h-4 transition-colors ${isVoiceMode ? 'text-white' : 'text-white/50'}`} />
+                <MicIcon className={`w-4 h-4 transition-colors ${isVoiceMode ? 'text-white' : 'text-white/50'}`} />
                 <span className="text-sm font-medium">
                   {isVoiceMode ? 'Voice' : 'Text'}
                 </span>
@@ -805,7 +802,10 @@ return (
                               </div>
                             </div>
                           ) : (
-                            <MicIcon className={`w-12 h-12 text-white ${isSessionActive ? 'animate-pulse' : ''}`} />
+                          <Image
+                  src={favicon || "/placeholder.svg"}
+                  alt="1to1Help Logo" 
+                  className={`w-12 h-12 text-white ${isSessionActive ? 'animate-pulse' : ''}`} />
                           )}
                         </div>
                         
