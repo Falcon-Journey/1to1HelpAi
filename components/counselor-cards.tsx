@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { UserIcon, CalendarIcon, StarIcon, ClockIcon, MapPinIcon, GraduationCapIcon, XIcon, PhoneIcon, MailIcon, DollarSignIcon } from 'lucide-react'
 import { BookingModal } from "./booking-modal"
 
+
+
 // Hardcoded counselor data
 const counselors = [
   {
