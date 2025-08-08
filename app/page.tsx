@@ -34,7 +34,8 @@ import Image from "next/image"
 import logo from "@/public/logo.png"
 import favicon from "@/public/favicon.png"
 import { CounselorCards } from "@/components/counselor-cards"
-import { AnalysisSidebar } from '@/components/analysis-sidebar'
+import { AnalysisSidebar } from "@/components/analysis-sidebar" // New import
+import { WELLNESS_SYSTEM_PROMPT, COACH_SYSTEM_PROMPT, THERAPIST_SYSTEM_PROMPT } from "@/lib/prompt"
 
 // Add this function before the component
 function isWellnessRelated(text: string): boolean {
@@ -50,79 +51,6 @@ function isWellnessRelated(text: string): boolean {
     lowerText.includes('here specifically for');
 }
 
-// Wellness-focused system prompt for Realtime API - More strict
-const WELLNESS_SYSTEM_PROMPT = `You are 1to1Help, a compassionate emotional wellness companion created by The 1to1Help community. You are based in India and you must speak in Indian voice and with Indian accent. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
-
-IMPORTANT:
-- Keep your answers short and concise — try to consume as few tokens as possible.
-- You must speak in Indian voice and with Indian accent.
-
-🧠 You Specialize In:
-- Emotional support
-- Mindfulness and grounding techniques
-- Stress and anxiety management
-- Self-care routines
-- Emotional regulation strategies
-
-✅ You Can:
-- Offer breathing exercises or mindfulness prompts
-- Share affirmations, journaling ideas, or gratitude practices
-- Help users identify and manage emotional triggers
-- Encourage healthy routines and self-reflection
-
-❌ You Cannot:
-- Provide diagnosis, therapy, or medical advice
-- Mention emergency services, external hotlines, websites, or apps
-- Recommend searching for counselors elsewhere
-- Encourage dependency — always promote self-empowerment
-
-📌 For Crises (self-harm, suicidal thoughts, etc.):
-Respond with:
-"I'm concerned about your wellbeing. This needs professional support. Please speak to someone you trust or a licensed counselor. I'm here for general wellness support, but this needs human care."
-
-📌 For medical/therapy questions:
-Respond with:
-"This requires guidance from a licensed mental health professional. I can offer general wellness tips, but not clinical advice."
-
-📌 For counselor or session-related requests:
-Respond with:
-"I'd be happy to connect you with our qualified counselors. Let me show you who's available to support you."
-
-🌱 Additional Behaviour Rules:
-- When a patient initiates a conversation, **do not solve the problem immediately** — first ask open, gentle questions to understand what they are feeling and experiencing.
-- When offering a suggestion or solution, **always end with a gentle follow-up prompt** such as: "Does that seem helpful?" or "Would you like to explore that together?"
-
-🌱 Always be gentle, brief, and non-judgmental.
-🌱 Stay within general wellness — not therapy or clinical care.
-🌱 Keep answers helpful, caring, and to the point.
-
-You are a guide for wellbeing — not a replacement for professional care.`;
-
-const COACH_SYSTEM_PROMPT = `You are 1to1Help Health Coach AI, a supportive health and wellness guide created by The 1to1Help community in India. Speak in an Indian voice and accent.
-
-Your role is to provide concise, practical advice focused on healthy lifestyle habits, fitness motivation, nutrition basics, and wellbeing routines.
-
-🧠 Specialize in:
-- Healthy lifestyle guidance
-- Nutrition tips
-- Fitness motivation and routines
-- Daily wellness habits and self-care
-
-✅ You can:
-- Suggest simple exercises or movement tips
-- Share balanced diet ideas and hydration reminders
-- Encourage healthy sleep and stress management
-- Motivate users to build sustainable habits
-
-❌ You cannot:
-- Provide medical diagnosis or prescribe treatments
-- Offer therapy or clinical advice
-- Mention emergency services or external hotlines
-
-When starting a conversation, ask open questions to understand current habits and goals before suggesting changes. Always end with a gentle prompt like "Does that sound doable?" or "Would you like to try this together?"
-
-Keep answers brief, encouraging, and practical.`;
-
 export default function WellnessChat() {
   const [useWebSearch, setUseWebSearch] = useState(false)
   const [isSignedUp, setIsSignedUp] = useState(false)
@@ -137,7 +65,6 @@ export default function WellnessChat() {
 
   // Analysis tracking state - FAKE but convincing
   const [analysisData, setAnalysisData] = useState<any[]>([])
-  const [showAnalysis, setShowAnalysis] = useState(false)
   const [currentAnalysis, setCurrentAnalysis] = useState<{
     id: string
     type: 'text' | 'voice'
@@ -148,89 +75,118 @@ export default function WellnessChat() {
       step: string
       timestamp: number
       duration?: number
-      status: 'processing' | 'completed'  
+      status: 'processing' | 'completed'
     }>
     tokenCount?: number
     model?: string
     reasoning?: string
+    tone?: string // Added tone for analysis
   }>()
+  const [showAnalysis, setShowAnalysis] = useState(false)
 
   // Fake analysis system with realistic timing
   const createFakeAnalysis = (type: 'text' | 'voice', model?: string) => {
     const id = Date.now().toString()
+    const stepDefinitions = type === 'voice'
+      ? [
+          'Processing voice input',
+          'Connecting to Realtime API',
+          'Analyzing wellness context',
+          'Generating voice response',
+          'Streaming audio output'
+        ]
+      : [
+          'Processing text input',
+          'Analyzing wellness context',
+          'Connecting to AI model',
+          'Generating response',
+          'Streaming text output'
+        ];
+
+    let initialReasoning = '';
+    let tone = '';
+    switch (model) {
+      case 'coach':
+        initialReasoning = 'Engaging the Wellness Coach model to provide practical health and lifestyle advice.';
+        tone = 'Encouraging & Practical';
+        break;
+      case 'therapist':
+        initialReasoning = 'Activating the Therapist model to understand emotional needs and facilitate connection to professional help.';
+        tone = 'Empathetic & Guiding';
+        break;
+      default: // gpt-4o-mini (Wellness AI)
+        initialReasoning = 'Utilizing the 1to1Help AI model for compassionate emotional wellness support.';
+        tone = 'Warm & Supportive';
+        break;
+    }
+
+    const initialSteps = stepDefinitions.map(step => ({
+      step,
+      timestamp: Date.now(), // Initial timestamp, will be updated
+      status: 'processing' as const
+    }));
+
     const analysis = {
       id,
       type,
       status: 'processing' as const,
       startTime: Date.now(),
-      steps: [],
+      steps: initialSteps,
       model,
-      tokenCount: 0  
-    }
-    
-    setCurrentAnalysis(analysis)
-    
-    // Fake realistic steps with timing
-    const steps = type === 'voice' 
-      ? [
-          { step: 'Processing voice input', delay: 100 },
-          { step: 'Connecting to Realtime API', delay: 300 },
-          { step: 'Analyzing wellness context', delay: 500 },
-          { step: 'Generating voice response', delay: 800 },
-          { step: 'Streaming audio output', delay: 1200 }
-        ]
-      : [
-          { step: 'Processing text input', delay: 100 },
-          { step: 'Analyzing wellness context', delay: 300 },
-          { step: 'Connecting to AI model', delay: 500 },
-          { step: 'Generating response', delay: 800 },
-          { step: 'Streaming text output', delay: 1200 }
-        ]
-    
-    // Add steps with realistic delays
-    steps.forEach(({ step, delay }) => {
+      tokenCount: 0,
+      reasoning: initialReasoning,
+      tone
+    };
+
+    setCurrentAnalysis(analysis);
+
+    // Simulate step completion over time
+    initialSteps.forEach((_, index) => {
+      const delay = (index + 1) * 300; // Adjust delay as needed
       setTimeout(() => {
         setCurrentAnalysis(prev => {
-          if (!prev || prev.id !== id) return prev
-          const newStep = {
-            step,
+          if (!prev || prev.id !== id) return prev;
+          const updatedSteps = [...prev.steps];
+          updatedSteps[index] = {
+            ...updatedSteps[index],
+            status: 'completed' as const,
             timestamp: Date.now(),
-            status: 'processing' as const
-          }
+            duration: Math.floor(Math.random() * 200) + 100 // Fake duration for step
+          };
           return {
             ...prev,
-            steps: [...prev.steps, newStep]
-          }
-        })
-      }, delay)
-    })
+            steps: updatedSteps
+          };
+        });
+      }, delay);
+    });
   }
 
-  const completeFakeAnalysis = (reasoning?: string) => {
-    if (!currentAnalysis) return
-    
-    const endTime = Date.now()
-    const duration = endTime - currentAnalysis.startTime
-    const tokenCount = Math.floor(Math.random() * 100) + 50 // Fake token count
-    
-    // Complete all steps
-    const completedSteps = currentAnalysis.steps.map(step => ({
+  const completeFakeAnalysis = (finalReasoning?: string) => {
+    if (!currentAnalysis) return;
+
+    const endTime = Date.now();
+    const duration = endTime - currentAnalysis.startTime;
+    const tokenCount = Math.floor(Math.random() * 100) + 50; // Fake token count
+
+    // Ensure all steps are marked as completed if they haven't been by the timeouts
+    const finalSteps = currentAnalysis.steps.map(step => ({
       ...step,
       status: 'completed' as const,
-      duration: Math.floor(Math.random() * 500) + 200 // Fake realistic durations
-    }))
-    
+      duration: step.duration || (Math.floor(Math.random() * 200) + 100) // Ensure duration is set
+    }));
+
     const completedAnalysis = {
       ...currentAnalysis,
       status: 'completed' as const,
       endTime,
-      reasoning: reasoning || 'Analysis completed successfully',
+      reasoning: finalReasoning || currentAnalysis.reasoning || 'Analysis completed successfully',
       tokenCount,
-      steps: completedSteps
-    }
-    
-    setAnalysisData(prev => [completedAnalysis, ...prev.slice(0, 9)])
-    setCurrentAnalysis(undefined)
+      steps: finalSteps // Use the finalized steps
+    };
+
+    setAnalysisData(prev => [completedAnalysis, ...prev.slice(0, 9)]);
+    setCurrentAnalysis(undefined);
   }
 
   // Refs for Realtime API
@@ -241,9 +197,10 @@ export default function WellnessChat() {
   const animationFrame = useRef<number | null>(null)
 
   // Wellness-focused models
-  const models = [  
-    { id: "gpt-4o-mini", name: "1to1Help Ai", provider: "openai" },  
+  const models = [
+    { id: "gpt-4o-mini", name: "1to1Help Ai", provider: "openai" },
     { id: "coach", name: "Wellness Coach", provider: "coach" },
+    { id: "therapist", name: "Therapist Connect", provider: "therapist" }, // Added therapist model
   ]
 
   const [model, setModel] = useState<string>(models[0].id)
@@ -253,7 +210,7 @@ export default function WellnessChat() {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/chat",  
+      api: "/api/chat",
     }),
     onFinish: ({ message }) => {
       // Complete fake analysis when message appears
@@ -261,19 +218,20 @@ export default function WellnessChat() {
           completeFakeAnalysis('Wellness response generated successfully')
         }, 500) // Small delay to make it feel realistic
 
-      const content = message.parts      
-        .filter((part) => part.type === "text")      
-        .map((part: any) => part.text || "")      
-        .join(" ")      
+      const content = message.parts
+        .filter((part) => part.type === "text")
+        .map((part: any) => part.text || "")
+        .join(" ")
         .toLowerCase()
 
       const counselorKeywords = [
         'counselor', 'counsellor', 'therapist', 'professional',
-        'schedule', 'session', 'appointment', 'connect you', 'show you our'    
+        'schedule', 'session', 'appointment', 'connect you', 'show you our'
       ]
 
       if (counselorKeywords.some(keyword => content.includes(keyword))) {
-        setShowCounselors(true)    
+        setShowCounselors(true)
+        setShowAnalysis(false) // Ensure analysis sidebar is closed when counselor tab is shown
       }
     },
     onError: (error) => {
@@ -300,12 +258,12 @@ export default function WellnessChat() {
     "I need motivation for regular exercise",
   ]
 
-  // const voiceSuggestions = [
-  //   "Tell me about mindfulness",
-  //   "I need stress relief",
-  //   "Help me feel calmer",
-  //   "Guide me through breathing",
-  // ]
+  const therapistSuggestions = [
+    "I'm struggling with my emotions, what should I do?",
+    "Can you help me understand therapy options?",
+    "How can I find a mental health professional?",
+    "I need support for a difficult life event.",
+  ]
 
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
 
@@ -313,13 +271,18 @@ export default function WellnessChat() {
   async function startSession() {
     try {
       console.log('🎙️ Starting Realtime API session')
-      
+
       // Get a session token for OpenAI Realtime API
       const tokenResponse = await fetch(`/api/token?model=${encodeURIComponent(model)}`);
       const data = await tokenResponse.json();
       const EPHEMERAL_KEY = data.client_secret.value;
 
-      const systemPrompt = model === "coach" ? COACH_SYSTEM_PROMPT : WELLNESS_SYSTEM_PROMPT;
+      let systemPrompt = WELLNESS_SYSTEM_PROMPT;
+      if (model === 'coach') {
+        systemPrompt = COACH_SYSTEM_PROMPT;
+      } else if (model === 'therapist') {
+        systemPrompt = THERAPIST_SYSTEM_PROMPT;
+      }
 
       // Create a peer connection
       const pc = new RTCPeerConnection();
@@ -331,8 +294,8 @@ export default function WellnessChat() {
         if (audioElement.current) {
           audioElement.current.srcObject = e.streams[0];
           audioElement.current.onended = () => setIsSpeaking(false);
-          audioElement.current.onpause = () => setIsSpeaking(false);      
-        }    
+          audioElement.current.onpause = () => setIsSpeaking(false);
+        }
       };
 
       // Get microphone audio track
@@ -347,7 +310,7 @@ export default function WellnessChat() {
       dc.onmessage = (event) => {
         const message = JSON.parse(event.data);
         console.log('📨 Realtime API message', { type: message.type })
-        
+
         if (message.type === "response.audio.delta") {
           setIsSpeaking(true);
         } else if (message.type === "response.done") {
@@ -359,14 +322,14 @@ export default function WellnessChat() {
             }, 300)
           }
         } else if (message.type === "conversation.item.created" &&
-          message.item?.role === "assistant"      
+          message.item?.role === "assistant"
         ) {
           const content = message.item?.content?.[0]?.text || "";
           if (content && !isWellnessRelated(content)) {
-            console.warn("Non-wellness response detected:", content);        
+            console.warn("Non-wellness response detected:", content);
           }
         }
-        setEvents((prev) => [message, ...prev]);    
+        setEvents((prev) => [message, ...prev]);
       };
 
       dc.onopen = () => {
@@ -376,45 +339,45 @@ export default function WellnessChat() {
           type: "session.create",
           response: {
             modalities: ["audio", "text"],
-            input: [            
+            input: [
               {
                 role: "system",
                 type: "message",
-                content: [                
+                content: [
                   {
                     type: "input_text",
-                    text: systemPrompt,                
-                  },              
-                ],            
-              },          
-            ],        
+                    text: systemPrompt,
+                  },
+                ],
+              },
+            ],
           },
           session: {
             modalities: ["text", "audio"],
-            instructions: WELLNESS_SYSTEM_PROMPT,
+            instructions: systemPrompt, // Use selected system prompt
             voice: "sage",
             speed: "3.0",
             input_audio_format: "pcm16",
             output_audio_format: "pcm16",
             input_audio_transcription: {
-              model: "whisper-1",          
+              model: "whisper-1",
             },
             turn_detection: {
               type: "server_vad",
               threshold: 0.5,
               prefix_padding_ms: 300,
-              silence_duration_ms: 200,          
+              silence_duration_ms: 200,
             },
             temperature: 0.7,
-            max_response_output_tokens: 150,        
-          },      
-        });    
+            max_response_output_tokens: 150,
+          },
+        });
       };
 
       dc.onclose = () => {
         console.log('🔌 Data channel closed')
         setIsSessionActive(false);
-        setIsListening(false);    
+        setIsListening(false);
       };
 
       dc.onerror = (error) => {
@@ -432,13 +395,13 @@ export default function WellnessChat() {
         body: offer.sdp,
         headers: {
           Authorization: `Bearer ${EPHEMERAL_KEY}`,
-          "Content-Type": "application/sdp",      
-        },    
+          "Content-Type": "application/sdp",
+        },
       });
 
       const answer = {
         type: "answer" as RTCSdpType,
-        sdp: await sdpResponse.text(),    
+        sdp: await sdpResponse.text(),
       };
       await pc.setRemoteDescription(answer);
 
@@ -446,40 +409,41 @@ export default function WellnessChat() {
       setIsSessionActive(true);
       setIsListening(true);
       console.log('✅ Realtime session started successfully')
+      createFakeAnalysis('voice', model) // Start fake analysis for voice
     } catch (error) {
       console.log('❌ Failed to start session', error)
       setIsListening(false);
-      setIsSessionActive(false);  
+      setIsSessionActive(false);
     }
   }
 
   // Stop session and cleanup
   function stopSession() {
     console.log('🛑 Stopping Realtime session')
-    
+
     if (dataChannelRef.current) {
       dataChannelRef.current.close();
-      dataChannelRef.current = null;  
+      dataChannelRef.current = null;
     }
     if (peerConnection.current) {
       peerConnection.current.getSenders().forEach((sender) => {
-        if (sender.track) sender.track.stop();    
+        if (sender.track) sender.track.stop();
       });
       peerConnection.current.close();
-      peerConnection.current = null;  
+      peerConnection.current = null;
     }
     if (audioElement.current) {
       audioElement.current.pause();
       audioElement.current.srcObject = null;
-      audioElement.current = null;  
+      audioElement.current = null;
     }
     if (animationFrame.current) {
       cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;  
+      animationFrame.current = null;
     }
     if (audioContext.current) {
       audioContext.current.close();
-      audioContext.current = null;  
+      audioContext.current = null;
     }
     analyser.current = null;
     setIsSessionActive(false);
@@ -487,7 +451,7 @@ export default function WellnessChat() {
     setIsSpeaking(false);
     setVoiceLevel(0);
     setEvents([]);
-    
+
     console.log('🏁 Realtime session stopped')
   }
 
@@ -498,7 +462,7 @@ export default function WellnessChat() {
       const timestamp = new Date().toLocaleTimeString();
       message.event_id = message.event_id || crypto.randomUUID();
       if (!message.timestamp) {
-        message.timestamp = timestamp;    
+        message.timestamp = timestamp;
       }
       dc.send(JSON.stringify(message));
       setEvents((prev) => [message, ...prev]);
@@ -524,8 +488,8 @@ export default function WellnessChat() {
         const average = dataArray.reduce((a, b) => a + b) / bufferLength;
         const level = Math.min(5, Math.floor((average / 255) * 5));
         setVoiceLevel(level);
-        animationFrame.current = requestAnimationFrame(updateLevel);    
-      }  
+        animationFrame.current = requestAnimationFrame(updateLevel);
+      }
     }
     updateLevel();
   }
@@ -533,7 +497,7 @@ export default function WellnessChat() {
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      if (isSessionActive) stopSession();  
+      if (isSessionActive) stopSession();
     };
   }, [isSessionActive]);
 
@@ -542,45 +506,51 @@ export default function WellnessChat() {
   const handleSuggestionClick = (suggestion: string) => {
     if (isVoiceMode && isSessionActive) {
       // Start fake voice analysis
-      createFakeAnalysis('voice', 'gpt-4o-realtime')
-      
+      createFakeAnalysis('voice', model)
+
       // Send voice suggestion to Realtime API
       sendClientEvent({
         type: "conversation.item.create",
         item: {
           type: "message",
           role: "user",
-          content: [          
+          content: [
             {
               type: "input_text",
-              text: suggestion          
-            }        
-          ]      
-        }    
+              text: suggestion
+            }
+          ]
+        }
       });
-      
+
       // Trigger response
       sendClientEvent({
-        type: "response.create"    
+        type: "response.create"
       });
-      return;  
+      return;
     }
 
     // Text mode - start fake analysis
     createFakeAnalysis('text', model)
-    
-    const systemPrompt = model === "coach" ? COACH_SYSTEM_PROMPT : WELLNESS_SYSTEM_PROMPT;
+
+    let systemPrompt = WELLNESS_SYSTEM_PROMPT;
+    if (model === 'coach') {
+      systemPrompt = COACH_SYSTEM_PROMPT;
+    } else if (model === 'therapist') {
+      systemPrompt = THERAPIST_SYSTEM_PROMPT;
+    }
+
     const provider = models.find((m) => m.id === model)?.provider || "openai"
     const effectiveWebSearch = provider === "openai" ? useWebSearch : false
-    
+
     sendMessage({
       text: suggestion,
       metadata: {
         useWebSearch: effectiveWebSearch,
         modelId: model,
         provider,
-        systemPrompt: systemPrompt      
-      }    
+        systemPrompt: systemPrompt
+      }
     })
   }
 
@@ -588,11 +558,11 @@ export default function WellnessChat() {
   const handleMicClick = async () => {
     if (isVoiceMode) {
       if (isSessionActive) {
-        stopSession();    
+        stopSession();
       } else {
-        await startSession();    
+        await startSession();
       }
-      return;  
+      return;
     }
 
     // Original transcription logic for text mode
@@ -614,31 +584,31 @@ export default function WellnessChat() {
             console.log('🔄 Transcribing audio')
             const res = await fetch("/api/transcribe", {
               method: "POST",
-              body: formData,          
+              body: formData,
             })
             const data = await res.json()
             if (data.text) {
               setInput(data.text)
               console.log('✅ Transcription completed', { text: data.text })
             }
-            setTranscribing(false)        
+            setTranscribing(false)
           } catch (error) {
             console.log('❌ Transcription error', error)
-            setTranscribing(false)        
-          }      
+            setTranscribing(false)
+          }
         }
 
         mediaRecorderRef.current = mediaRecorder
         mediaRecorder.start()
-        setRecording(true)    
+        setRecording(true)
       } catch (err) {
         console.log('❌ Could not start recording', err)
-      }  
+      }
     } else {
       console.log('🛑 Stopping voice recording')
       mediaRecorderRef.current?.stop()
       mediaRecorderRef.current?.stream.getTracks().forEach((t) => t.stop())
-      setRecording(false)  
+      setRecording(false)
     }
   }
 
@@ -647,21 +617,27 @@ export default function WellnessChat() {
     if (input.trim()) {
       // Start fake analysis
       createFakeAnalysis('text', model)
-      
+
       const provider = models.find((m) => m.id === model)?.provider || "openai"
       const effectiveWebSearch = provider === "openai" ? useWebSearch : false
-      const systemPrompt = model === "coach" ? COACH_SYSTEM_PROMPT : WELLNESS_SYSTEM_PROMPT;
       
+      let systemPrompt = WELLNESS_SYSTEM_PROMPT;
+      if (model === 'coach') {
+        systemPrompt = COACH_SYSTEM_PROMPT;
+      } else if (model === 'therapist') {
+        systemPrompt = THERAPIST_SYSTEM_PROMPT;
+      }
+
       sendMessage({
         text: input,
         metadata: {
           useWebSearch: effectiveWebSearch,
           modelId: model,
           provider: provider,
-          systemPrompt: systemPrompt        
-        },      
+          systemPrompt: systemPrompt
+        },
       })
-      setInput("")  
+      setInput("")
     }
   }
 
@@ -682,20 +658,20 @@ export default function WellnessChat() {
       const dataUrl = reader.result as string
       sendMessage({
         // @ts-ignore
-        parts: [        
+        parts: [
           {
             type: "file",
             data: dataUrl,
             mediaType: file.type,
-            filename: file.name,        
-          } as any,      
+            filename: file.name,
+          } as any,
         ],
         metadata: {
           modelId: model,
           provider: models.find((m) => m.id === model)?.provider || "openai",
-          systemPrompt: WELLNESS_SYSTEM_PROMPT      
-        },    
-      } as any)  
+          systemPrompt: WELLNESS_SYSTEM_PROMPT
+        },
+      } as any)
     }
     reader.readAsDataURL(file)
     e.target.value = ""
@@ -736,26 +712,29 @@ export default function WellnessChat() {
                   <span className="text-sm font-medium">Analysis</span>
                   <Switch
                     checked={showAnalysis}
-                    onCheckedChange={setShowAnalysis}
+                    onCheckedChange={(checked) => {
+                      setShowAnalysis(checked);
+                      if (checked) setShowCounselors(false); // Close counselor sidebar if analysis is opened
+                    }}
                     className="data-[state=checked]:bg-[#8fbc8f] data-[state=unchecked]:bg-white/20"
                   />
                 </div>
                 <div className="flex items-center gap-2">
                   {isSignedUp && (
                     <Badge variant="secondary" className="bg-green-500/20 text-white border-green-400/30">
-                      <UserIcon className="w-3 h-3 mr-1" />                    
+                      <UserIcon className="w-3 h-3 mr-1" />
                       Signed Up
-                    </Badge>                
+                    </Badge>
                   )}
                   <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                    <ShieldCheckIcon className="w-3 h-3 mr-1" />                  
+                    <ShieldCheckIcon className="w-3 h-3 mr-1" />
                     Safe Space
                   </Badge>
                   {isVoiceMode && isSessionActive && (
                     <Badge variant="secondary" className="bg-green-500/20 text-white border-green-400/30 animate-pulse">
-                      <Volume2Icon className="w-3 h-3 mr-1" />                    
+                      <Volume2Icon className="w-3 h-3 mr-1" />
                       Live
-                    </Badge>                
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -775,10 +754,10 @@ export default function WellnessChat() {
                         {/* Primary Voice Circle */}
                         <div className="relative">
                           <div className={`w-40 h-40 rounded-full flex items-center justify-center transition-all duration-500 ${
-                            isSpeaking                             
-                              ? 'bg-gradient-to-br from-green-400 to-emerald-600 scale-105 shadow-2xl shadow-green-500/30'                             
-                              : isSessionActive                               
-                                ? 'bg-gradient-to-br from-[#8fbc8f] to-[#2d5a5a] scale-100 shadow-xl'                               
+                            isSpeaking
+                              ? 'bg-gradient-to-br from-green-400 to-emerald-600 scale-105 shadow-2xl shadow-green-500/30'
+                              : isSessionActive
+                                ? 'bg-gradient-to-br from-[#8fbc8f] to-[#2d5a5a] scale-100 shadow-xl'
                                 : 'bg-gradient-to-br from-gray-400 to-gray-600 scale-95'
                           }`}>
                             {isSpeaking ? (
@@ -790,16 +769,16 @@ export default function WellnessChat() {
                                       key={i}
                                       className="w-1.5 h-6 bg-white rounded-full animate-bounce"
                                       style={{ animationDelay: `${i * 0.2}s` }}
-                                    />                                
+                                    />
                                   ))}
                                 </div>
-                              </div>                          
+                              </div>
                             ) : (
                               <Image
                                 src={favicon || "/placeholder.svg"}
-                                alt="1to1Help Logo" 
-                                className={`w-12 h-12 text-white ${isSessionActive ? 'animate-pulse' : ''}`} 
-                              />                          
+                                alt="1to1Help Logo"
+                                className={`w-12 h-12 text-white ${isSessionActive ? 'animate-pulse' : ''}`}
+                              />
                             )}
                           </div>
                           {/* Outer Ring Animation */}
@@ -807,28 +786,26 @@ export default function WellnessChat() {
                             <>
                               <div className="absolute inset-0 rounded-full border-4 border-[#8fbc8f]/30 animate-ping"></div>
                               <div className="absolute inset-0 rounded-full border-2 border-[#8fbc8f]/50 animate-pulse"></div>
-                            </>                        
+                            </>
                           )}
                         </div>
 
                         {/* Status Text */}
-                        <div className="text-center space-y-2">
-                          <h2 className={`text-2xl font-semibold transition-colors duration-300 ${
-                            isSpeaking ? 'text-green-600' : isSessionActive ? 'text-[#1e3a3a]' : 'text-gray-600'
-                          }`}>
-                            {isSpeaking ? '🎙️ I\'m responding...' : isSessionActive ? '👂 I\'m listening...' : '💚 Voice Wellness Mode'}
-                          </h2>
-                          <p className={`max-w-md leading-relaxed text-sm transition-colors duration-300 ${
-                            isSpeaking ? 'text-green-700' : isSessionActive ? 'text-muted-foreground' : 'text-gray-500'
-                          }`}>
-                            {isSpeaking                             
-                              ? 'I\'m providing wellness guidance through voice.'                             
-                              : isSessionActive                               
-                                ? 'Share your feelings and I\'ll support you with care.'                               
-                                : 'Start a voice conversation for personalized emotional wellness support.'
-                            }
-                          </p>
-                        </div>
+                        <h2 className={`text-2xl font-semibold transition-colors duration-300 ${
+                          isSpeaking ? 'text-green-600' : isSessionActive ? 'text-[#1e3a3a]' : 'text-gray-600'
+                        }`}>
+                          {isSpeaking ? '🎙️ I\'m responding...' : isSessionActive ? '👂 I\'m listening...' : '💚 Voice Wellness Mode'}
+                        </h2>
+                        <p className={`max-w-md leading-relaxed text-sm transition-colors duration-300 ${
+                          isSpeaking ? 'text-green-700' : isSessionActive ? 'text-muted-foreground' : 'text-gray-500'
+                        }`}>
+                          {isSpeaking
+                            ? 'I\'m providing wellness guidance through voice.'
+                            : isSessionActive
+                              ? 'Share your feelings and I\'ll support you with care.'
+                              : 'Start a voice conversation for personalized emotional wellness support.'
+                          }
+                        </p>
 
                         {/* Voice Level Indicator - Only show when listening and not speaking */}
                         {isSessionActive && !isSpeaking && (
@@ -842,11 +819,11 @@ export default function WellnessChat() {
                                 style={{
                                   height: `${Math.max(6, (i + 1) * 4)}px`,
                                   animationDelay: `${i * 0.1}s`,
-                                  animation: i < voiceLevel ? 'pulse 1s infinite' : 'none'                              
+                                  animation: i < voiceLevel ? 'pulse 1s infinite' : 'none'
                                 }}
-                              />                          
+                              />
                             ))}
-                          </div>                      
+                          </div>
                         )}
 
                         {/* Speaking Wave Animation */}
@@ -859,11 +836,11 @@ export default function WellnessChat() {
                                 style={{
                                   height: `${16 + Math.random() * 12}px`,
                                   animationDelay: `${i * 0.1}s`,
-                                  animationDuration: '0.6s'                              
+                                  animationDuration: '0.6s'
                                 }}
-                              />                          
+                              />
                             ))}
-                          </div>                      
+                          </div>
                         )}
                       </div>
 
@@ -873,42 +850,42 @@ export default function WellnessChat() {
                         size="lg"
                         disabled={isSpeaking}
                         className={`w-16 h-16 rounded-full transition-all duration-300 text-lg font-semibold ${
-                          isSpeaking                          
-                            ? 'bg-gray-400 cursor-not-allowed scale-95'                          
-                            : isSessionActive                             
-                              ? 'bg-red-500 hover:bg-red-600 scale-100 shadow-lg hover:shadow-xl'                             
+                          isSpeaking
+                            ? 'bg-gray-400 cursor-not-allowed scale-95'
+                            : isSessionActive
+                              ? 'bg-red-500 hover:bg-red-600 scale-100 shadow-lg hover:shadow-xl'
                               : 'bg-[#2d5a5a] hover:bg-[#1e3a3a] scale-100 hover:scale-105 shadow-lg hover:shadow-xl'
                         }`}
                       >
                         {isSpeaking ? (
-                          <Volume2Icon className="w-6 h-6 text-white" />                      
+                          <Volume2Icon className="w-6 h-6 text-white" />
                         ) : isSessionActive ? (
-                          <StopIcon className="w-6 h-6 text-white" />                      
+                          <StopIcon className="w-6 h-6 text-white" />
                         ) : (
-                          <MicIcon className="w-6 h-6 text-white" />                      
+                          <MicIcon className="w-6 h-6 text-white" />
                         )}
                       </Button>
 
                       <p className={`text-sm text-center font-medium transition-colors duration-300 ${
                         isSpeaking ? 'text-green-600' : isSessionActive ? 'text-muted-foreground' : 'text-gray-500'
                       }`}>
-                        {isSpeaking                         
-                          ? 'Please wait while I respond...'                         
-                          : isSessionActive                           
-                            ? 'Tap to end wellness conversation'                           
+                        {isSpeaking
+                          ? 'Please wait while I respond...'
+                          : isSessionActive
+                            ? 'Tap to end wellness conversation'
                             : 'Tap to start wellness conversation'
                         }
                       </p>
 
                       {/* Wellness Focus Badges */}
                       <div className="flex flex-wrap gap-2 justify-center">
-                        <Badge variant="outline" className="text-xs border-green-200 text-green-700">                        
+                        <Badge variant="outline" className="text-xs border-green-200 text-green-700">
                           🧘 Mindfulness Focus
                         </Badge>
-                        <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">                        
+                        <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">
                           🎙️ Real-time Voice
                         </Badge>
-                        <Badge variant="outline" className="text-xs border-purple-200 text-purple-700">                        
+                        <Badge variant="outline" className="text-xs border-purple-200 text-purple-700">
                           💚 Emotional Support
                         </Badge>
                       </div>
@@ -916,10 +893,10 @@ export default function WellnessChat() {
                       {/* Session Info */}
                       {isSessionActive && (
                         <div className="p-3 bg-white/50 rounded-lg backdrop-blur-sm border border-[#8fbc8f]/20">
-                          <p className="text-xs text-center text-muted-foreground">                          
+                          <p className="text-xs text-center text-muted-foreground">
                             🔒 Secure wellness conversation • Voice-only mode active
                           </p>
-                        </div>                    
+                        </div>
                       )}
                     </div>
 
@@ -945,7 +922,7 @@ export default function WellnessChat() {
                         <div className="border-[#8fbc8f]/30 bg-white/90 backdrop-blur-sm rounded-lg border">
                           <AIInputToolbar>
                             <AIInputTools>
-                              <AIInputButton onClick={handleFileInput} className="text-[#2d5a5a] hover:bg-[#8fbc8f]/10">
+                              {/* <AIInputButton onClick={handleFileInput} className="text-[#2d5a5a] hover:bg-[#8fbc8f]/10">
                                 <PlusIcon size={16} />
                                 <span className="sr-only">Add image</span>
                               </AIInputButton>
@@ -958,7 +935,7 @@ export default function WellnessChat() {
                               >
                                 <MicIcon size={16} />
                                 <span className="sr-only">Voice input</span>
-                              </AIInputButton>
+                              </AIInputButton> */}
 
                               {/* Voice Mode Toggle */}
                               <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/50">
@@ -981,7 +958,7 @@ export default function WellnessChat() {
                                     <AIInputModelSelectItem key={m.id} value={m.id} className="flex items-center gap-2">
                                       {/* provider logos */}
                                       {m.provider === "google" && (
-                                        <div className="w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 via-yellow-500 to-green-500 rounded-full" />                                    
+                                        <div className="w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 via-yellow-500 to-green-500 rounded-full" />
                                       )}
                                       {m.provider === "openai" && (
                                         <Image
@@ -990,7 +967,7 @@ export default function WellnessChat() {
                                           width={16}
                                           height={16}
                                           className="rounded"
-                                        />                                    
+                                        />
                                       )}
                                       {m.provider === "anthropic" && (
                                         <Image
@@ -999,10 +976,10 @@ export default function WellnessChat() {
                                           width={16}
                                           height={16}
                                           className="rounded"
-                                        />                                    
+                                        />
                                       )}
                                       {m.name}
-                                    </AIInputModelSelectItem>                                
+                                    </AIInputModelSelectItem>
                                   ))}
                                 </AIInputModelSelectContent>
                               </AIInputModelSelect>
@@ -1011,7 +988,7 @@ export default function WellnessChat() {
                         </div>
                       </div>
                     </div>
-                  </div>              
+                  </div>
                 ) : (
                   /* Text Mode UI (Original) */
                   <>
@@ -1028,8 +1005,8 @@ export default function WellnessChat() {
                             </div>
                             <div className="space-y-2">
                               <h2 className="text-2xl font-semibold text-[#1e3a3a]">Welcome to Your Safe Space</h2>
-                              <p className="text-muted-foreground max-w-md leading-relaxed">                              
-                                I'm here to support your emotional wellbeing with mindfulness techniques, stress management,                              
+                              <p className="text-muted-foreground max-w-md leading-relaxed">
+                                I'm here to support your emotional wellbeing with mindfulness techniques, stress management,
                                 and gentle guidance. I can also connect you with professional counselors when needed.
                               </p>
                             </div>
@@ -1039,23 +1016,23 @@ export default function WellnessChat() {
                               <Badge variant="outline" className="text-xs">Emotional Support</Badge>
                               <Badge variant="outline" className="text-xs">Professional Help</Badge>
                             </div>
-                          </div>                      
+                          </div>
                         ) : (
                           messages.slice(0).map((message) => {
                             // Extract sources from 'source' parts (streamed via sendSources)
-                            const sourceParts = message.parts.filter(                            
-                              (part) => part.type === "source-url" || part.type === "source-document",                          
+                            const sourceParts = message.parts.filter(
+                              (part) => part.type === "source-url" || part.type === "source-document",
                             )
-                            const streamedSources = sourceParts                            
+                            const streamedSources = sourceParts
                               .map((part: any) => ({
                                 title: part.title || part.source?.title || part.url || part.source?.url,
-                                href: part.url || part.source?.url,                            
-                              }))                            
+                                href: part.url || part.source?.url,
+                              }))
                               .filter((s) => !!s.href)
 
                             // Extract sources from tool results (web_search_preview)
-                            const toolSources = message.parts                            
-                              .filter((part) => part.type === "tool-result")                            
+                            const toolSources = message.parts
+                              .filter((part) => part.type === "tool-result")
                               .flatMap((part) => {
                                 if (part.type === "tool-result") {
                                   const toolResult = part as any
@@ -1063,26 +1040,26 @@ export default function WellnessChat() {
                                     let parsed = toolResult.result
                                     if (typeof parsed === "string") {
                                       try {
-                                        parsed = JSON.parse(parsed)                                    
+                                        parsed = JSON.parse(parsed)
                                       } catch {
-                                        return []                                    
-                                      }                                  
+                                        return []
+                                      }
                                     }
                                     return (parsed.results?.map((r: any) => ({
                                       title: r.title,
-                                      href: r.url,                                  
-                                    })) || [])                                
-                                  }                              
+                                      href: r.url,
+                                    })) || [])
+                                  }
                                 }
-                                return []                            
+                                return []
                               })
 
                             // Merge and deduplicate sources by href
-                            const sourcesMap = new Map<string, { title: string; href: string }>()                          
+                            const sourcesMap = new Map<string, { title: string; href: string }>()
                             ;[...streamedSources, ...toolSources].forEach((s) => {
                               if (s && s.href && !sourcesMap.has(s.href)) {
-                                sourcesMap.set(s.href, s as { title: string; href: string })                            
-                              }                          
+                                sourcesMap.set(s.href, s as { title: string; href: string })
+                              }
                             })
                             const sources = Array.from(sourcesMap.values())
 
@@ -1094,10 +1071,10 @@ export default function WellnessChat() {
                                       <AISourcesTrigger count={sources.length} />
                                       <AISourcesContent>
                                         {sources.map((source, index) => (
-                                          <AISource key={index} href={source.href} title={source.title} />                                      
+                                          <AISource key={index} href={source.href} title={source.title} />
                                         ))}
                                       </AISourcesContent>
-                                    </AISources>                                
+                                    </AISources>
                                   )}
                                   <AIMessageContent>
                                     <AIResponse>
@@ -1107,14 +1084,14 @@ export default function WellnessChat() {
                                 </div>
                                 <AIMessageAvatar
                                   name={message.role === "user" ? "You" : "1to1Help Ai"}
-                                  src={message.role === "user"                                  
-                                    ? "https://api.dicebear.com/9.x/glass/svg"                                  
+                                  src={message.role === "user"
+                                    ? "https://api.dicebear.com/9.x/glass/svg"
                                     : "/favicon.png"
                                   }
                                 />
-                              </AIMessage>                          
-                            )                        
-                          })                      
+                              </AIMessage>
+                            )
+                          })
                         )}
                       </AIConversationContent>
                       <AIConversationScrollButton />
@@ -1123,13 +1100,14 @@ export default function WellnessChat() {
                     <div className="grid shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
                       <div className="grid justify-center shrink-0 gap-4 pt-4 bg-gradient-to-t from-white/50 to-transparent">
                         <AISuggestions className="px-4">
-                          {(model === "coach" ? coachSuggestions : suggestions).map((s) => (
+                          {/* Conditional suggestions based on selected model */}
+                          {(model === "coach" ? coachSuggestions : model === "therapist" ? therapistSuggestions : suggestions).map((s) => (
                             <AISuggestion
                               key={s}
                               suggestion={s}
                               onClick={() => handleSuggestionClick(s)}
                               className="border-[#8fbc8f]/30 hover:border-[#2d5a5a] hover:bg-[#8fbc8f]/10"
-                            />                        
+                            />
                           ))}
                         </AISuggestions>
                       </div>
@@ -1145,7 +1123,7 @@ export default function WellnessChat() {
                           />
                           <AIInputToolbar>
                             <AIInputTools>
-                              <AIInputButton onClick={handleFileInput} className="text-[#2d5a5a] hover:bg-[#8fbc8f]/10">
+                              {/* <AIInputButton onClick={handleFileInput} className="text-[#2d5a5a] hover:bg-[#8fbc8f]/10">
                                 <PlusIcon size={16} />
                                 <span className="sr-only">Add image</span>
                               </AIInputButton>
@@ -1158,7 +1136,7 @@ export default function WellnessChat() {
                               >
                                 <MicIcon size={16} />
                                 <span className="sr-only">Voice input</span>
-                              </AIInputButton>
+                              </AIInputButton> */}
 
                               {/* Voice Mode Toggle */}
                               <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/50">
@@ -1181,7 +1159,7 @@ export default function WellnessChat() {
                                     <AIInputModelSelectItem key={m.id} value={m.id} className="flex items-center gap-2">
                                       {/* provider logos */}
                                       {m.provider === "google" && (
-                                        <div className="w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 via-yellow-500 to-green-500 rounded-full" />                                    
+                                        <div className="w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 via-yellow-500 to-green-500 rounded-full" />
                                       )}
                                       {m.provider === "openai" && (
                                         <Image
@@ -1190,7 +1168,7 @@ export default function WellnessChat() {
                                           width={16}
                                           height={16}
                                           className="rounded"
-                                        />                                    
+                                        />
                                       )}
                                       {m.provider === "anthropic" && (
                                         <Image
@@ -1199,10 +1177,10 @@ export default function WellnessChat() {
                                           width={16}
                                           height={16}
                                           className="rounded"
-                                        />                                    
+                                        />
                                       )}
                                       {m.name}
-                                    </AIInputModelSelectItem>                                
+                                    </AIInputModelSelectItem>
                                   ))}
                                 </AIInputModelSelectContent>
                               </AIInputModelSelect>
@@ -1216,28 +1194,30 @@ export default function WellnessChat() {
                         </AIInput>
                       </div>
                     </div>
-                  </>              
+                  </>
                 )}
               </div>
 
-              {/* Counselor Sidebar */}
-              {showCounselors && (
+              {/* Analysis Sidebar */}
+              {showAnalysis && (
+                <div className="w-96 border-l border-border/50 bg-gradient-to-b from-white/90 to-[#faf7f2]/90 backdrop-blur-sm">
+                  <AnalysisSidebar
+                    currentAnalysis={currentAnalysis}
+                    analysisHistory={analysisData}
+                    onClose={() => setShowAnalysis(false)}
+                  />
+                </div>
+              )}
+
+              {/* Counselor Sidebar (mutually exclusive with Analysis Sidebar) */}
+              {showCounselors && !showAnalysis && (
                 <div className="w-96 border-l border-border/50 bg-gradient-to-b from-white/90 to-[#faf7f2]/90 backdrop-blur-sm">
                   <CounselorCards
                     isSignedUp={isSignedUp}
                     onSignUp={handleSignUp}
                     onClose={() => setShowCounselors(false)}
                   />
-                </div>            
-              )}
-
-              {/* Analysis Sidebar */}
-              {showAnalysis && (
-                <AnalysisSidebar
-                  currentAnalysis={currentAnalysis}
-                  analysisHistory={analysisData}
-                  onClose={() => setShowAnalysis(false)}
-                />            
+                </div>
               )}
             </div>
           </CardContent>

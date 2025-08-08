@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react'
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { XIcon, MicIcon, MessageSquareIcon, ClockIcon, CpuIcon, ZapIcon, CheckCircleIcon, LoaderIcon, BrainIcon, SendIcon, EyeIcon, SparklesIcon, DatabaseIcon, NetworkIcon, CpuIcon as ProcessorIcon, WifiIcon } from 'lucide-react'
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { XIcon, CpuIcon, ClockIcon, CheckCircleIcon, XCircleIcon, Loader2Icon, MessageSquareIcon, MicIcon, PlayIcon, SparklesIcon } from 'lucide-react'
+import { cn } from "@/lib/utils"
+import React from "react"
 
 interface AnalysisStep {
   step: string
@@ -12,7 +16,7 @@ interface AnalysisStep {
   status: 'processing' | 'completed'
 }
 
-interface AnalysisData {
+interface AnalysisItem {
   id: string
   type: 'text' | 'voice'
   status: 'processing' | 'completed' | 'error'
@@ -22,452 +26,239 @@ interface AnalysisData {
   tokenCount?: number
   model?: string
   reasoning?: string
+  tone?: string
 }
 
 interface AnalysisSidebarProps {
-  currentAnalysis?: AnalysisData
-  analysisHistory: AnalysisData[]
+  isOpen?: boolean // Not strictly needed if controlled by parent, but good for clarity
   onClose: () => void
+  currentAnalysis?: AnalysisItem
+  analysisHistory: AnalysisItem[]
 }
 
-// Enhanced step descriptions with better language
-const getStepDescription = (step: string): { title: string; description: string; icon: React.ReactNode } => {
-  const stepMap: Record<string, { title: string; description: string; icon: React.ReactNode }> = {
-    'Initializing request': {
-      title: 'Starting Analysis',
-      description: 'Setting up the AI processing pipeline and preparing your request',
-      icon: <ProcessorIcon className="w-4 h-4" />
-    },
-    'Preparing text request': {
-      title: 'Processing Input',
-      description: 'Analyzing your message and preparing it for the AI model',
-      icon: <EyeIcon className="w-4 h-4" />
-    },
-    'Sending to AI model': {
-      title: 'Connecting to AI',
-      description: 'Establishing connection with the AI model and sending your request',
-      icon: <SendIcon className="w-4 h-4" />
-    },
-    'Streaming response': {
-      title: 'Generating Response',
-      description: 'AI is thinking and generating a personalized response for you',
-      icon: <BrainIcon className="w-4 h-4" />
-    },
-    'Receiving response stream': {
-      title: 'Streaming Data',
-      description: 'Receiving the AI response in real-time chunks',
-      icon: <WifiIcon className="w-4 h-4" />
-    },
-    'Response received': {
-      title: 'Response Complete',
-      description: 'Successfully received the complete AI response',
-      icon: <CheckCircleIcon className="w-4 h-4" />
-    },
-    'Processing complete': {
-      title: 'Analysis Finished',
-      description: 'All processing steps completed successfully',
-      icon: <SparklesIcon className="w-4 h-4" />
-    },
-    'Processing voice suggestion': {
-      title: 'Voice Processing',
-      description: 'Processing your voice suggestion for the AI system',
-      icon: <MicIcon className="w-4 h-4" />
-    },
-    'Sending to Realtime API': {
-      title: 'Voice Connection',
-      description: 'Connecting to the real-time voice AI system',
-      icon: <NetworkIcon className="w-4 h-4" />
-    },
-    'Triggering AI response': {
-      title: 'Activating AI',
-      description: 'Triggering the AI to generate a voice response',
-      icon: <ZapIcon className="w-4 h-4" />
-    },
-    'Waiting for voice response': {
-      title: 'Voice Generation',
-      description: 'AI is preparing to speak back to you with wellness guidance',
-      icon: <SparklesIcon className="w-4 h-4"  />
-    },
-    'Receiving audio response': {
-      title: 'Audio Streaming',
-      description: 'Receiving and processing the AI\'s voice response in real-time',
-      icon: <WifiIcon className="w-4 h-4" />
-    },
-    'Voice response completed': {
-      title: 'Response Complete',
-      description: 'Voice interaction completed successfully',
-      icon: <CheckCircleIcon className="w-4 h-4" />
-    },
-    'AI response generated': {
-      title: 'Response Ready',
-      description: 'AI has generated a thoughtful response to your wellness query',
-      icon: <SparklesIcon className="w-4 h-4" />
-    }
+export function AnalysisSidebar({ onClose, currentAnalysis, analysisHistory }: AnalysisSidebarProps) {
+
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
-  return stepMap[step] || {
-    title: step,
-    description: 'Processing your request...',
-    icon: <LoaderIcon className="w-4 h-4" />
-  }
-}
-
-const getModelDisplayName = (model?: string) => {
-  const modelMap: Record<string, string> = {
-    'gpt-4o-mini': '1to1Help AI',
-    'gpt-4o-realtime': 'Voice AI',
-    'coach': 'Wellness Coach',
-    'gpt-4o': '1to1Help AI Pro'
-  }
-  return modelMap[model || ''] || model || 'AI Model'
-}
-
-export function AnalysisSidebar({ currentAnalysis, analysisHistory, onClose }: AnalysisSidebarProps) {
-  const [currentTime, setCurrentTime] = useState(Date.now())
-
-  // Update current time every 200ms for smooth animations
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now())
-    }, 200)
-    return () => clearInterval(interval)
-  }, [])
-
-  const formatDuration = (ms: number) => {
-    if (ms < 1000) return `${ms}ms`
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-    return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'processing': return 'bg-blue-500'
-      case 'completed': return 'bg-green-500'
-      case 'error': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
-  }
-
-  const calculateProgress = (analysis: AnalysisData) => {
+  const calculateProgress = (analysis: AnalysisItem) => {
+    if (analysis.status === 'completed' || analysis.status === 'error') return 100
     if (!analysis.steps.length) return 0
     const completedSteps = analysis.steps.filter(step => step.status === 'completed').length
-    const progress = (completedSteps / analysis.steps.length) * 100
-    
-    // If analysis is completed, show 100%
-    if (analysis.status === 'completed') return 100
-    
-    // If still processing, show at least some progress
-    return Math.max(progress, analysis.steps.length > 0 ? 20 : 0)
+    return (completedSteps / analysis.steps.length) * 100
   }
 
-  const getCurrentDuration = (startTime: number) => {
-    return currentTime - startTime
+  const getModelName = (modelId?: string) => {
+    switch (modelId) {
+      case 'coach':
+        return 'Wellness Coach';
+      case 'therapist':
+        return 'Therapist Connect';
+      case 'gpt-4o-mini':
+        return '1to1Help Ai';
+      default:
+        return 'Unknown Model';
+    }
   }
 
-  // Rest of the component stays the same but with better visual feedback
-  
   return (
-    <div className="w-80 border-l border-border/50 bg-gradient-to-b from-white/95 to-[#faf7f2]/95 backdrop-blur-sm">
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <CpuIcon className="w-5 h-5 text-[#2d5a5a]" />
-              {currentAnalysis && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              )}
-            </div>
-            <h3 className="text-lg font-semibold text-[#1e3a3a]">AI Analysis</h3>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-border/50">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-[#2d5a5a]">AI Analysis</h3>
+            <p className="text-sm text-muted-foreground">Understanding the AI's thought process</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-[#2d5a5a] hover:bg-[#8fbc8f]/10"
+          >
             <XIcon className="w-4 h-4" />
           </Button>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Current Analysis */}
-          {currentAnalysis && (
-            <Card className="border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 shadow-sm">
+      <ScrollArea className="flex-1 overflow-y-auto p-4">
+        {/* Current Analysis */}
+        {currentAnalysis && (
+          <>
+            {/* Start Card */}
+            <Card className="mb-4 border-[#8fbc8f]/30 bg-white/90 backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      currentAnalysis.status === 'completed' ? 'bg-green-500' : 'bg-blue-500 animate-pulse'
-                    }`}></div>
-                    <CardTitle className="text-sm font-semibold text-blue-800">
-                      {currentAnalysis.type === 'voice' ? '🎙️ Voice Analysis' : '💬 Text Analysis'}
-                    </CardTitle>
-                  </div>
-                  <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
-                    {getModelDisplayName(currentAnalysis.model)}
-                  </Badge>
+                <div className="flex items-center gap-2">
+                  <PlayIcon className="w-5 h-5 text-blue-500" />
+                  <CardTitle className="text-[#2d5a5a]">Analysis Started</CardTitle>
                 </div>
-                
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-blue-700">
-                    <span>Progress</span>
-                    <span>{Math.round(calculateProgress(currentAnalysis))}%</span>
-                  </div>
-                  <Progress 
-                    value={calculateProgress(currentAnalysis)} 
-                    className="h-2 bg-blue-100"
-                  />
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Initiating AI thought process for your {currentAnalysis.type} input.
+                </p>
               </CardHeader>
-
-              <CardContent className="pt-0 space-y-3">
-                {/* Real-time Stats */}
-                <div className="grid grid-cols-2 gap-3 p-3 bg-white/60 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-700 font-mono">
-                      {currentAnalysis.endTime 
-                        ? formatDuration(currentAnalysis.endTime - currentAnalysis.startTime)
-                        : formatDuration(getCurrentDuration(currentAnalysis.startTime))
-                      }
-                    </div>
-                    <div className="text-xs text-blue-600">Duration</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-700">
-                      {currentAnalysis.steps.length}
-                    </div>
-                    <div className="text-xs text-blue-600">Steps</div>
-                  </div>
+              <CardContent className="pt-0">
+                <div className="flex items-center gap-2 text-sm text-[#2d5a5a]">
+                  {currentAnalysis.type === 'text' ? (
+                    <MessageSquareIcon className="inline-block w-4 h-4 mr-1 align-middle" />
+                  ) : (
+                    <MicIcon className="inline-block w-4 h-4 mr-1 align-middle" />
+                  )}
+                  Input Type: {currentAnalysis.type === 'text' ? 'Text' : 'Voice'}
                 </div>
-
-                {/* Processing Steps */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-blue-800 flex items-center gap-1">
-                    <ZapIcon className="w-3 h-3" /> 
-                    Processing Steps
-                  </h4>
-                  
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {currentAnalysis.steps.map((step, index) => {
-                      const stepInfo = getStepDescription(step.step)
-                      const isActive = step.status === 'processing' && currentAnalysis.status === 'processing'
-                      const stepDuration = step.duration || (isActive ? getCurrentDuration(step.timestamp) : 0)
-                      
-                      return (
-                        <Card 
-                          key={index} 
-                          className={`transition-all duration-500 ${
-                            isActive 
-                              ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md scale-[1.02]' 
-                              : 'border-green-300 bg-gradient-to-r from-green-50 to-emerald-50'
-                          }`}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-start gap-3">
-                              <div className={`mt-0.5 ${isActive ? 'text-blue-600' : 'text-green-600'}`}>
-                                {isActive ? (
-                                  <LoaderIcon className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <CheckCircleIcon className="w-4 h-4" />
-                                )}
-                              </div>
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <h5 className={`text-sm font-medium ${
-                                    isActive ? 'text-blue-800' : 'text-green-800'
-                                  }`}>
-                                    {stepInfo.title}
-                                  </h5>
-                                  <Badge 
-                                    variant={isActive ? "default" : "secondary"}
-                                    className={`text-xs ${
-                                      isActive 
-                                        ? 'bg-blue-500 text-white' 
-                                        : 'bg-green-500 text-white'
-                                    }`}
-                                  >
-                                    {formatDuration(stepDuration)}
-                                  </Badge>
-                                </div>
-                                
-                                <p className={`text-xs mt-1 ${
-                                  isActive ? 'text-blue-700' : 'text-green-700'
-                                }`}>
-                                  {stepInfo.description}
-                                </p>
-                                
-                                {isActive && (
-                                  <div className="mt-2">
-                                    <div className="w-full bg-blue-200 rounded-full h-1">
-                                      <div className="bg-blue-500 h-1 rounded-full animate-pulse" style={{width: '75%'}}></div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Status Message */}
-                <div className={`p-3 rounded-lg border ${
-                  currentAnalysis.status === 'completed' 
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
-                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      currentAnalysis.status === 'completed' ? 'bg-green-500' : 'bg-blue-500 animate-pulse'
-                    }`}></div>
-                    <span className={`text-sm font-medium ${
-                      currentAnalysis.status === 'completed' ? 'text-green-800' : 'text-blue-800'
-                    }`}>
-                      {currentAnalysis.status === 'completed' ? 'Analysis Complete!' : 'Processing...'}
-                    </span>
-                  </div>
-                  <p className={`text-sm mt-1 ${
-                    currentAnalysis.status === 'completed' ? 'text-green-700' : 'text-blue-700'
-                  }`}>
-                    {currentAnalysis.status === 'completed' 
-                      ? 'Your wellness response has been generated successfully'
-                      : 'AI is analyzing your request and generating a personalized response'
-                    }
-                  </p>
+                <div className="flex items-center gap-2 text-sm text-[#2d5a5a] mt-1">
+                  <CpuIcon className="w-4 h-4" />
+                  Model: {getModelName(currentAnalysis.model)}
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Analysis History - keep the same */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-[#1e3a3a] flex items-center gap-2">
-              <ClockIcon className="w-4 h-4" />
-              Recent Analysis ({analysisHistory.length})
-            </h4>
-
-            {analysisHistory.map((analysis) => (
-              <Card key={analysis.id} className="border-[#8fbc8f]/20 hover:border-[#8fbc8f]/40 transition-all duration-200 hover:shadow-md">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {analysis.type === 'voice' ? (
-                        <MicIcon className="w-3 h-3 text-[#2d5a5a]" />
+            {/* Thought Process Card */}
+            <Card className="mb-4 border-[#8fbc8f]/30 bg-white/90 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <SparklesIcon className="w-5 h-5 text-purple-500" />
+                  <CardTitle className="text-[#2d5a5a]">AI Thought Process</CardTitle>
+                  <Badge
+                    className={cn(
+                      "ml-auto",
+                      currentAnalysis.status === 'processing' && "bg-blue-100 text-blue-700",
+                      currentAnalysis.status === 'completed' && "bg-green-100 text-green-700",
+                      currentAnalysis.status === 'error' && "bg-red-100 text-red-700"
+                    )}
+                  >
+                    {currentAnalysis.status === 'processing' && <Loader2Icon className="w-3 h-3 mr-1 animate-spin" />}
+                    {currentAnalysis.status === 'completed' && <CheckCircleIcon className="w-3 h-3 mr-1" />}
+                    {currentAnalysis.status === 'error' && <XCircleIcon className="w-3 h-3 mr-1" />}
+                    {currentAnalysis.status.charAt(0).toUpperCase() + currentAnalysis.status.slice(1)}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Current stage of AI processing and reasoning.
+                </p>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3">
+                <Progress value={calculateProgress(currentAnalysis)} className="h-2" />
+                <div className="space-y-2">
+                  {currentAnalysis.steps.map((step, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      {step.status === 'completed' ? (
+                        <CheckCircleIcon className="w-4 h-4 text-green-600" />
                       ) : (
-                        <MessageSquareIcon className="w-3 h-3 text-[#2d5a5a]" />
+                        <Loader2Icon className="w-4 h-4 text-blue-500 animate-spin" />
                       )}
-                      <span className="text-xs font-medium">
-                        {analysis.type === 'voice' ? 'Voice' : 'Text'} • {getModelDisplayName(analysis.model)}
+                      <span className="flex-1 text-[#2d5a5a]">{step.step}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {formatTime(step.timestamp)}
+                        {step.duration && ` (${step.duration}ms)`}
                       </span>
                     </div>
-                    <Badge 
-                      variant={analysis.status === 'completed' ? 'default' : 'destructive'} 
-                      className={`text-xs ${
-                        analysis.status === 'completed' ? 'bg-green-500' : ''
-                      }`}
+                  ))}
+                </div>
+                {currentAnalysis.reasoning && (
+                  <div className="text-xs text-muted-foreground mt-2 p-2 bg-[#8fbc8f]/10 rounded-md">
+                    <span className="font-semibold text-[#2d5a5a]">Reasoning:</span> {currentAnalysis.reasoning}
+                  </div>
+                )}
+                {currentAnalysis.tone && (
+                  <div className="text-xs text-muted-foreground p-2 bg-[#8fbc8f]/10 rounded-md">
+                    <span className="font-semibold text-[#2d5a5a]">Tone:</span> {currentAnalysis.tone}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Completed Card (only show if current analysis is completed) */}
+            {currentAnalysis.status === 'completed' && (
+              <Card className="mb-4 border-[#8fbc8f]/30 bg-white/90 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                    <CardTitle className="text-[#2d5a5a]">Analysis Completed!</CardTitle>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    AI has finished processing your request.
+                  </p>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-[#2d5a5a]">
+                    <ClockIcon className="w-4 h-4" />
+                    Total Duration: {currentAnalysis.endTime ? `${((currentAnalysis.endTime - currentAnalysis.startTime) / 1000).toFixed(1)}s` : 'N/A'}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[#2d5a5a]">
+                    <CpuIcon className="w-4 h-4" />
+                    Tokens Used: {currentAnalysis.tokenCount || 'N/A'}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Analysis History */}
+        {analysisHistory.length > 0 && (
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-[#2d5a5a] mt-6 mb-2">Past Analyses</h4>
+            {analysisHistory.map((analysis) => (
+              <Card key={analysis.id} className="border-[#8fbc8f]/20 bg-white/70 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    {analysis.type === 'text' ? (
+                      <MessageSquareIcon className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <MicIcon className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <CardTitle className="text-base text-[#2d5a5a]">
+                      {analysis.type === 'text' ? 'Text Analysis' : 'Voice Analysis'}
+                    </CardTitle>
+                    <Badge
+                      className={cn(
+                        "ml-auto",
+                        analysis.status === 'completed' && "bg-green-100 text-green-700",
+                        analysis.status === 'error' && "bg-red-100 text-red-700"
+                      )}
                     >
-                      ✓ {analysis.status}
+                      {analysis.status === 'completed' && <CheckCircleIcon className="w-3 h-3 mr-1" />}
+                      {analysis.status === 'error' && <XCircleIcon className="w-3 h-3 mr-1" />}
+                      {analysis.status.charAt(0).toUpperCase() + analysis.status.slice(1)}
                     </Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Model: {getModelName(analysis.model)} • Duration: {analysis.endTime ? `${((analysis.endTime - analysis.startTime) / 1000).toFixed(1)}s` : 'N/A'}
+                  </p>
                 </CardHeader>
-
-                <CardContent className="pt-0 space-y-3">
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-3 gap-2 p-2 bg-[#8fbc8f]/5 rounded">
-                    <div className="text-center">
-                      <div className="text-xs font-semibold text-[#2d5a5a]">
-                        {analysis.endTime ? formatDuration(analysis.endTime - analysis.startTime) : 'N/A'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Time</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs font-semibold text-[#2d5a5a]">
-                        {analysis.tokenCount || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Tokens</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs font-semibold text-[#2d5a5a]">
-                        {analysis.steps.length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Steps</div>
-                    </div>
-                  </div>
-
+                <CardContent className="pt-0 text-sm space-y-2">
+                  <p className="text-muted-foreground">
+                    Tokens: {analysis.tokenCount || 'N/A'}
+                  </p>
                   {analysis.reasoning && (
-                    <div className="space-y-1">
-                      <span className="text-xs text-muted-foreground">Result</span>
-                      <p className="text-xs text-[#2d5a5a] bg-white/50 p-2 rounded">
-                        {analysis.reasoning}
-                      </p>
+                    <div className="text-xs text-muted-foreground p-2 bg-[#8fbc8f]/10 rounded-md">
+                      Reasoning: {analysis.reasoning}
+                    </div>
+                  )}
+                  {analysis.tone && (
+                    <div className="text-xs text-muted-foreground p-2 bg-[#8fbc8f]/10 rounded-md">
+                      Tone: {analysis.tone}
                     </div>
                   )}
                 </CardContent>
               </Card>
             ))}
-
-            {analysisHistory.length === 0 && !currentAnalysis && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#8fbc8f]/10 to-[#2d5a5a]/10 flex items-center justify-center">
-                  <BrainIcon className="w-6 h-6 text-[#8fbc8f]" />
-                </div>
-                <h5 className="text-sm font-medium text-[#1e3a3a] mb-2">Ready for Analysis</h5>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Start a conversation to see AI processing insights
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Track performance, timing, and model behavior
-                </p>
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Enhanced Stats Footer */}
-        <div className="p-4 border-t border-border/50 bg-gradient-to-r from-white/80 to-[#faf7f2]/80">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-2 bg-white/60 rounded-lg">
-              <div className="text-sm font-bold text-[#2d5a5a]">{analysisHistory.length}</div>
-              <div className="text-xs text-muted-foreground">Sessions</div>
-            </div>
-            <div className="text-center p-2 bg-white/60 rounded-lg">
-              <div className="text-sm font-bold text-[#2d5a5a]">
-                {analysisHistory.reduce((acc, a) => acc + (a.tokenCount || 0), 0)}
-              </div>
-              <div className="text-xs text-muted-foreground">Tokens</div>
-            </div>
-            <div className="text-center p-2 bg-white/60 rounded-lg">
-              <div className="text-sm font-bold text-[#2d5a5a]">
-                {analysisHistory.length > 0
-                  ? formatDuration(
-                      analysisHistory.reduce((acc, a) => 
-                        acc + (a.endTime ? a.endTime - a.startTime : 0), 0
-                      ) / analysisHistory.length
-                    )
-                  : '0ms'}
-              </div>
-              <div className="text-xs text-muted-foreground">Avg Time</div>
-            </div>
+        )}
+        {analysisHistory.length === 0 && !currentAnalysis && (
+          <div className="text-center py-8 text-muted-foreground">
+            <CpuIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No analysis data yet. Start a conversation to see the AI's thought process!</p>
           </div>
-          
-          {currentAnalysis && currentAnalysis.status === 'processing' && (
-            <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-center gap-2 text-xs text-blue-700">
-                <LoaderIcon className="w-3 h-3 animate-spin" />
-                <span>Analysis in progress...</span>
-              </div>
-            </div>
-          )}
-          
-          {currentAnalysis && currentAnalysis.status === 'completed' && (
-            <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center justify-center gap-2 text-xs text-green-700">
-                <CheckCircleIcon className="w-3 h-3" />
-                <span>Analysis completed successfully!</span>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
+      </ScrollArea>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-border/50 bg-[#8fbc8f]/5">
+        <p className="text-xs text-muted-foreground text-center">
+          AI analysis provides insights into model operations.
+        </p>
       </div>
     </div>
   )
