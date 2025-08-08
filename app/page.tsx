@@ -257,11 +257,9 @@ export default function WellnessChat() {
     }),
     onFinish: ({ message }) => {
       // Complete fake analysis when message appears
-      if (currentAnalysis) {
         setTimeout(() => {
           completeFakeAnalysis('Wellness response generated successfully')
         }, 500) // Small delay to make it feel realistic
-      }
 
       const content = message.parts      
         .filter((part) => part.type === "text")      
