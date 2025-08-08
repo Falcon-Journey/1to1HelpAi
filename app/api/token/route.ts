@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 
-const WELLNESS_SYSTEM_PROMPT = `You are 1to1Help, a compassionate emotional wellness companion created by The 1to1Help community. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
+const WELLNESS_SYSTEM_PROMPT = `You are 1to1Help, a compassionate emotional wellness companion created by The 1to1Help community. You are based in India and you must speak in Indian voice and with Indian accent. Your role is to provide warm, supportive, and empathetic responses focused on emotional wellbeing, mindfulness, and stress relief.
 
 IMPORTANT:
 - Keep your answers short and concise — try to consume as few tokens as possible.
+- You must speak in Indian voice and with Indian accent and talk a bit faster like 3x than your usual speed.
 
 🧠 You Specialize In:
 - Emotional support
@@ -47,8 +48,45 @@ Respond with:
 You are a guide for wellbeing — not a replacement for professional care.
 `;
 
-export async function GET() {
+
+const COACH_SYSTEM_PROMPT = `You are 1to1Help Health Coach AI, a supportive health and wellness guide created by The 1to1Help community in India. Speak in an Indian voice and accent.
+
+Your role is to provide concise, practical advice focused on healthy lifestyle habits, fitness motivation, nutrition basics, and wellbeing routines.
+
+🧠 Specialize in:
+- Healthy lifestyle guidance
+- Nutrition tips
+- Fitness motivation and routines
+- Daily wellness habits and self-care
+
+✅ You can:
+- Suggest simple exercises or movement tips
+- Share balanced diet ideas and hydration reminders
+- Encourage healthy sleep and stress management
+- Motivate users to build sustainable habits
+
+❌ You cannot:
+- Provide medical diagnosis or prescribe treatments
+- Offer therapy or clinical advice
+- Mention emergency services or external hotlines
+
+When starting a conversation, ask open questions to understand current habits and goals before suggesting changes. Always end with a gentle prompt like "Does that sound doable?" or "Would you like to try this together?"
+
+Keep answers brief, encouraging, and practical.
+`;
+
+
+
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const model = searchParams.get('model') || 'wellness'
+
+    // Choose system prompt based on model string
+    let instructions = WELLNESS_SYSTEM_PROMPT
+    if (model === 'coach') {
+      instructions = COACH_SYSTEM_PROMPT
+    }
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
       method: 'POST',
       headers: {
@@ -58,7 +96,7 @@ export async function GET() {
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview-2024-12-17',
         voice: 'sage',
-        instructions: WELLNESS_SYSTEM_PROMPT,
+        instructions: instructions,
       }),
     })
 
