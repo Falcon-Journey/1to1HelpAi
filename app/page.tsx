@@ -33,6 +33,9 @@ import { HeartIcon, MicIcon, PlusIcon, ShieldCheckIcon, UserIcon, CalendarIcon, 
 import Image from "next/image"
 import logo from "@/public/logo.png"
 import favicon from "@/public/favicon.png"
+import therapist from "@/public/therapist.png"
+import coach from "@/public/trainer.png"
+
 import { CounselorCards } from "@/components/counselor-cards"
 import { AnalysisSidebar } from "@/components/analysis-sidebar" // New import
 import { WELLNESS_SYSTEM_PROMPT, COACH_SYSTEM_PROMPT, THERAPIST_SYSTEM_PROMPT } from "@/lib/prompt"
@@ -1120,6 +1123,12 @@ export default function WellnessChat() {
                             disabled={transcribing}
                             placeholder={transcribing ? "Transcribing your voice..." : "Share what's on your mind..."}
                             className="placeholder:text-muted-foreground/60"
+                              onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+                              }
+                            }}
                           />
                           <AIInputToolbar>
                             <AIInputTools>
@@ -1170,6 +1179,24 @@ export default function WellnessChat() {
                                           className="rounded"
                                         />
                                       )}
+                                      {m.provider === "therapist" && (
+                                      <Image
+                                        src={therapist || "/placeholder.svg"}
+                                        alt="Therapist Icon"
+                                        width={16}
+                                        height={16}
+                                        className="rounded"
+                                      />
+                                    )}
+                                    {m.provider === "coach" && (
+                                      <Image
+                                        src={coach || "/placeholder.svg"}
+                                        alt="Coach Icon"
+                                        width={16}
+                                        height={16}
+                                        className="rounded"
+                                      />
+                                    )}
                                       {m.provider === "anthropic" && (
                                         <Image
                                           src="https://github.com/anthropics.png"
